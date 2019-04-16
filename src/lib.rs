@@ -139,6 +139,7 @@ mod decoder;
 
 /// Metadata returned by `RegKey::query_info`
 #[derive(Debug,Default)]
+#[cfg_attr(feature = "serialization-serde", derive(Serialize, Deserialize))]
 pub struct RegKeyMetadata {
     // pub Class: winapi::LPWSTR,
     // pub ClassLen: DWORD,
@@ -149,7 +150,7 @@ pub struct RegKeyMetadata {
     pub max_value_name_len: DWORD,
     pub max_value_len: DWORD,
     // pub SecurityDescriptor: DWORD,
-    // pub LastWriteTime: winapi::PFILETIME,
+    pub last_write_time: winapi::PFILETIME,
 }
 
 /// Raw registry value
@@ -457,7 +458,7 @@ impl RegKey {
                 &mut info.max_value_name_len,
                 &mut info.max_value_len,
                 ptr::null_mut(), // lpcbSecurityDescriptor: winapi::LPDWORD,
-                ptr::null_mut(), // lpftLastWriteTime: winapi::PFILETIME,
+                &mut info.last_write_time
             ) as DWORD
         } {
             0 => Ok(info),
