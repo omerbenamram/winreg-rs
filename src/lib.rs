@@ -139,7 +139,7 @@ mod decoder;
 
 /// Metadata returned by `RegKey::query_info`
 #[derive(Debug,Default)]
-#[cfg_attr(feature = "serialization-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialization-serde", derive(Serialize))]
 pub struct RegKeyMetadata {
     // pub Class: winapi::LPWSTR,
     // pub ClassLen: DWORD,
