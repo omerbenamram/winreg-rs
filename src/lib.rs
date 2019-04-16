@@ -449,7 +449,7 @@ impl RegKey {
 
     pub fn query_info(&self) -> io::Result<RegKeyMetadata> {
         let mut info: RegKeyMetadata = Default::default();
-        let mut ft: FILETIME = unsafe {::std::mem::zeroed::<FILETIME>()};
+        let mut ft: FILETIME = unsafe {mem::zeroed()};
 
         match unsafe {
             winapi_reg::RegQueryInfoKeyW(
