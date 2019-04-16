@@ -104,17 +104,21 @@
 extern crate winapi;
 #[cfg(feature = "serialization-serde")]
 extern crate serde;
+
+#[cfg(feature = "serialization-serde")]
+use serde::Serialize;
+
 use std::ptr;
 use std::slice;
 use std::fmt;
 use std::default::Default;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
-use std::mem::transmute;
+use std::mem::{transmute, self};
 use std::io;
 use winapi::shared::winerror;
 pub use winapi::shared::minwindef::HKEY;
-use winapi::shared::minwindef::{DWORD, BYTE, LPBYTE};
+use winapi::shared::minwindef::{DWORD, BYTE, LPBYTE, PFILETIME, FILETIME};
 use winapi::um::winnt::{self, WCHAR};
 use winapi::um::winreg as winapi_reg;
 use enums::*;
@@ -138,7 +142,7 @@ mod encoder;
 mod decoder;
 
 /// Metadata returned by `RegKey::query_info`
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 #[cfg_attr(feature = "serialization-serde", derive(Serialize))]
 pub struct RegKeyMetadata {
     // pub Class: winapi::LPWSTR,
@@ -150,7 +154,7 @@ pub struct RegKeyMetadata {
     pub max_value_name_len: DWORD,
     pub max_value_len: DWORD,
     // pub SecurityDescriptor: DWORD,
-    pub last_write_time: winapi::PFILETIME,
+    pub last_write_time: i64,
 }
 
 /// Raw registry value
@@ -445,6 +449,8 @@ impl RegKey {
 
     pub fn query_info(&self) -> io::Result<RegKeyMetadata> {
         let mut info: RegKeyMetadata = Default::default();
+        let mut ft: FILETIME = unsafe {::std::mem::zeroed::<FILETIME>()};
+
         match unsafe {
             winapi_reg::RegQueryInfoKeyW(
                 self.hkey,
@@ -458,10 +464,15 @@ impl RegKey {
                 &mut info.max_value_name_len,
                 &mut info.max_value_len,
                 ptr::null_mut(), // lpcbSecurityDescriptor: winapi::LPDWORD,
-                &mut info.last_write_time
+                &mut ft
             ) as DWORD
         } {
-            0 => Ok(info),
+            0 => {
+                info.last_write_time = ((
+                    ft.dwLowDateTime as i64) | ((ft.dwHighDateTime as i64) << 32)
+                ) as i64;
+                Ok(info)
+            },
             err => werr!(err)
         }
     }
